@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
 }
 
 async function logIt(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   softid: string, cardNo: string, mac: string,
   version: string, ip: string, result: string, token = ""
 ) {
