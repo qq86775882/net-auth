@@ -35,14 +35,14 @@ export default function LogsPage() {
         <Sidebar />
         <main className="flex-1 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-slate-800">馃搵 楠岃瘉鏃ュ織</h2>
+            <h2 className="text-xl font-bold text-slate-800">📋 验证日志</h2>
             <select value={filterResult} onChange={(e) => setFilterResult(e.target.value)}
               className="border rounded-lg px-3 py-1.5 text-sm">
-              <option value="">鍏ㄩ儴缁撴灉</option>
-              <option value="success">鎴愬姛</option>
-              <option value="-1">杩囨湡</option>
-              <option value="-11">鍗″瘑涓嶅瓨鍦?/option>
-              <option value="-3">鏈哄櫒鐮佷笉鍖归厤</option>
+              <option value="">全部结果</option>
+              <option value="success">成功</option>
+              <option value="-1">过期</option>
+              <option value="-11">卡密不存在</option>
+              <option value="-3">机器码不匹配</option>
             </select>
           </div>
 
@@ -50,13 +50,13 @@ export default function LogsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50 text-left text-slate-500">
-                  <th className="px-4 py-3">鏃堕棿</th>
-                  <th className="px-4 py-3">杞欢ID</th>
-                  <th className="px-4 py-3">鍗″瘑</th>
-                  <th className="px-4 py-3">鏈哄櫒鐮?/th>
-                  <th className="px-4 py-3">鐗堟湰</th>
+                  <th className="px-4 py-3">时间</th>
+                  <th className="px-4 py-3">软件ID</th>
+                  <th className="px-4 py-3">卡密</th>
+                  <th className="px-4 py-3">机器码</th>
+                  <th className="px-4 py-3">版本</th>
                   <th className="px-4 py-3">IP</th>
-                  <th className="px-4 py-3">缁撴灉</th>
+                  <th className="px-4 py-3">结果</th>
                 </tr>
               </thead>
               <tbody>
@@ -74,13 +74,13 @@ export default function LogsPage() {
                       <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                         l.result === "success" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
                       }`}>
-                        {l.result === "success" ? "鎴愬姛" : l.result}
+                        {l.result === "success" ? "成功" : l.result}
                       </span>
                     </td>
                   </tr>
                 ))}
                 {logs.length === 0 && (
-                  <tr><td colSpan={7} className="text-center py-8 text-slate-400">鏆傛棤鏃ュ織</td></tr>
+                  <tr><td colSpan={7} className="text-center py-8 text-slate-400">暂无日志</td></tr>
                 )}
               </tbody>
             </table>
