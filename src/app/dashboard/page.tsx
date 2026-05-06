@@ -33,31 +33,31 @@ export default function DashboardPage() {
     (async () => {
       const today = new Date().toISOString().split("T")[0];
 
-      // 浠婃棩楠岃瘉娆℃暟
+      // 今日验证次数
       const { count: todayCount } = await supabase
         .from("auth_logs")
         .select("*", { count: "exact", head: true })
         .gte("created_at", today);
 
-      // 浠婃棩鎴愬姛娆℃暟
+      // 今日成功次数
       const { count: successCount } = await supabase
         .from("auth_logs")
         .select("*", { count: "exact", head: true })
         .gte("created_at", today)
         .eq("result", "success");
 
-      // 鍦ㄧ嚎鐢ㄦ埛
+      // 在线用户
       const { count: onlineUsers } = await supabase
         .from("online_sessions")
         .select("*", { count: "exact", head: true })
         .gte("expire_at", new Date().toISOString());
 
-      // 鎬诲崱瀵嗘暟
+      // 总卡密数
       const { count: totalCards } = await supabase
         .from("cards")
         .select("*", { count: "exact", head: true });
 
-      // 鏈€杩?0鏉℃棩蹇?
+      // 最近10条日志
       const { data: recentLogs } = await supabase
         .from("auth_logs")
         .select("id, card_no, mac, result, created_at")
@@ -79,10 +79,10 @@ export default function DashboardPage() {
   }, []);
 
   const cards = [
-    { label: "浠婃棩楠岃瘉", value: stats.todayCount, icon: TrendingUp, color: "blue" },
-    { label: "鎴愬姛鐜?, value: stats.successRate + "%", icon: CheckCircle, color: "green" },
-    { label: "鍦ㄧ嚎鐢ㄦ埛", value: stats.onlineUsers, icon: Users, color: "purple" },
-    { label: "鎬诲崱瀵嗘暟", value: stats.totalCards, icon: Ticket, color: "orange" },
+    { label: "今日验证", value: stats.todayCount, icon: TrendingUp, color: "blue" },
+    { label: "成功率", value: stats.successRate + "%", icon: CheckCircle, color: "green" },
+    { label: "在线用户", value: stats.onlineUsers, icon: Users, color: "purple" },
+    { label: "总卡密数", value: stats.totalCards, icon: Ticket, color: "orange" },
   ];
 
   const colorMap: Record<string, string> = {
@@ -97,7 +97,7 @@ export default function DashboardPage() {
       <div className="flex">
         <Sidebar />
         <main className="flex-1 p-6">
-          <h2 className="text-xl font-bold text-slate-800 mb-6">馃搳 浠〃鐩?/h2>
+          <h2 className="text-xl font-bold text-slate-800 mb-6">📊 仪表盘</h2>
 
           <div className="grid grid-cols-4 gap-4 mb-8">
             {cards.map(({ label, value, icon: Icon, color }) => (
@@ -115,14 +115,14 @@ export default function DashboardPage() {
           </div>
 
           <div className="bg-white rounded-xl border border-slate-200 p-5">
-            <h3 className="font-semibold text-slate-700 mb-3">鈿?鏈€杩戦獙璇佽褰?/h3>
+            <h3 className="font-semibold text-slate-700 mb-3">⚡ 最近验证记录</h3>
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-slate-500 border-b">
-                  <th className="pb-2">鏃堕棿</th>
-                  <th className="pb-2">鍗″瘑</th>
-                  <th className="pb-2">鏈哄櫒鐮?/th>
-                  <th className="pb-2">缁撴灉</th>
+                  <th className="pb-2">时间</th>
+                  <th className="pb-2">卡密</th>
+                  <th className="pb-2">机器码</th>
+                  <th className="pb-2">结果</th>
                 </tr>
               </thead>
               <tbody>
@@ -145,7 +145,7 @@ export default function DashboardPage() {
                             : "bg-red-100 text-red-700"
                         }`}
                       >
-                        {log.result === "success" ? "鎴愬姛" : log.result}
+                        {log.result === "success" ? "成功" : log.result}
                       </span>
                     </td>
                   </tr>
