@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
       return new NextResponse("-20", { status: 200, headers: { "Content-Type": "text/plain" } });
     }
 
-    // 鏌ヤ細璇?
+    // 查会话
     const { data: session } = await supabase
       .from("online_sessions")
       .select("*")
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
       return new NextResponse("-20", { status: 200, headers: { "Content-Type": "text/plain" } });
     }
 
-    // 鏇存柊蹇冭烦鏃堕棿锛屽欢鏃朵細璇?
+    // 更新心跳时间，延时会话
     const newExpire = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     await supabase
       .from("online_sessions")
