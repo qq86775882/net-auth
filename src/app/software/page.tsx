@@ -85,7 +85,7 @@ export default function SoftwarePage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("纭畾鍒犻櫎锛熷叧鑱旂殑鍗″瘑涔熶細琚垹闄ゃ€?)) return;
+    if (!confirm("确定删除？关联的卡密也会被删除。")) return;
     await supabase.from("softwares").delete().eq("id", id);
     fetchSoftwares();
   };
@@ -99,7 +99,7 @@ export default function SoftwarePage() {
     setShowCreate(true);
   };
 
-  const bindLabels = ["涓嶇粦瀹?, "棣栨缁戝畾", "姣忔鏍￠獙"];
+  const bindLabels = ["不绑定", "首次绑定", "每次校验"];
 
   return (
     <AuthGuard>
@@ -107,43 +107,43 @@ export default function SoftwarePage() {
         <Sidebar />
         <main className="flex-1 p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-slate-800">馃摝 杞欢绠＄悊</h2>
+            <h2 className="text-xl font-bold text-slate-800">📦 软件管理</h2>
             <button
               onClick={() => { setShowCreate(true); setEditId(null); setName(""); setVersionMin(""); setMachineBind(1); setMaxOnline(0); }}
               className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-500 transition-colors"
             >
-              <Plus size={16} /> 鍒涘缓杞欢
+              <Plus size={16} /> 创建软件
             </button>
           </div>
 
-          {/* 鍒涘缓/缂栬緫寮圭獥 */}
+          {/* 创建/编辑弹窗 */}
           {showCreate && (
             <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
               <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
                 <h3 className="text-lg font-bold mb-4">
-                  {editId ? "缂栬緫杞欢" : "鍒涘缓杞欢"}
+                  {editId ? "编辑软件" : "创建软件"}
                 </h3>
                 <div className="space-y-3">
                   <div>
-                    <label className="text-sm text-slate-600">杞欢鍚嶇О *</label>
+                    <label className="text-sm text-slate-600">软件名称 *</label>
                     <input
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       className="w-full border rounded-lg px-3 py-2 mt-1"
-                      placeholder="渚嬪锛氭垜鐨勫皬宸ュ叿"
+                      placeholder="例如：我的小工具"
                     />
                   </div>
                   <div>
-                    <label className="text-sm text-slate-600">鏈€浣庣増鏈彿</label>
+                    <label className="text-sm text-slate-600">最低版本号</label>
                     <input
                       value={versionMin}
                       onChange={(e) => setVersionMin(e.target.value)}
                       className="w-full border rounded-lg px-3 py-2 mt-1"
-                      placeholder="鐣欑┖涓嶉檺鍒?
+                      placeholder="留空不限制"
                     />
                   </div>
                   <div>
-                    <label className="text-sm text-slate-600">鏈哄櫒鐮佺粦瀹氭ā寮?/label>
+                    <label className="text-sm text-slate-600">机器码绑定模式</label>
                     <select
                       value={machineBind}
                       onChange={(e) => setMachineBind(Number(e.target.value))}
@@ -155,7 +155,7 @@ export default function SoftwarePage() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-sm text-slate-600">鏈€澶у湪绾挎暟锛?=涓嶉檺锛?/label>
+                    <label className="text-sm text-slate-600">最大在线数（0=不限）</label>
                     <input
                       type="number"
                       value={maxOnline}
@@ -169,32 +169,32 @@ export default function SoftwarePage() {
                     onClick={() => setShowCreate(false)}
                     className="px-4 py-2 text-sm border rounded-lg text-slate-600 hover:bg-slate-50"
                   >
-                    鍙栨秷
+                    取消
                   </button>
                   <button
                     onClick={editId ? handleEdit : handleCreate}
                     className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-500"
                   >
-                    {editId ? "淇濆瓨" : "鍒涘缓"}
+                    {editId ? "保存" : "创建"}
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* 杞欢鍒楄〃 */}
+          {/* 软件列表 */}
           <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50 text-left text-slate-500">
-                  <th className="px-4 py-3">杞欢鍚嶇О</th>
-                  <th className="px-4 py-3">杞欢鏍囪瘑 (Softid)</th>
-                  <th className="px-4 py-3">缁戝畾妯″紡</th>
-                  <th className="px-4 py-3">鏈€浣庣増鏈?/th>
-                  <th className="px-4 py-3">鏈€澶у湪绾?/th>
-                  <th className="px-4 py-3">鐘舵€?/th>
-                  <th className="px-4 py-3">鍒涘缓鏃堕棿</th>
-                  <th className="px-4 py-3">鎿嶄綔</th>
+                  <th className="px-4 py-3">软件名称</th>
+                  <th className="px-4 py-3">软件标识 (Softid)</th>
+                  <th className="px-4 py-3">绑定模式</th>
+                  <th className="px-4 py-3">最低版本</th>
+                  <th className="px-4 py-3">最大在线</th>
+                  <th className="px-4 py-3">状态</th>
+                  <th className="px-4 py-3">创建时间</th>
+                  <th className="px-4 py-3">操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -204,7 +204,7 @@ export default function SoftwarePage() {
                     <td className="px-4 py-3 font-mono text-xs text-blue-600">{s.softid}</td>
                     <td className="px-4 py-3">{bindLabels[s.machine_bind]}</td>
                     <td className="px-4 py-3">{s.version_min || "-"}</td>
-                    <td className="px-4 py-3">{s.max_online || "涓嶉檺"}</td>
+                    <td className="px-4 py-3">{s.max_online || "不限"}</td>
                     <td className="px-4 py-3">
                       <button
                         onClick={() => handleToggle(s.id, s.status)}
@@ -212,7 +212,7 @@ export default function SoftwarePage() {
                           s.status === 1 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
                         }`}
                       >
-                        {s.status === 1 ? "鍚敤" : "绂佺敤"}
+                        {s.status === 1 ? "启用" : "禁用"}
                       </button>
                     </td>
                     <td className="px-4 py-3 text-slate-400 text-xs">
@@ -231,7 +231,7 @@ export default function SoftwarePage() {
                 {softwares.length === 0 && (
                   <tr>
                     <td colSpan={8} className="text-center py-8 text-slate-400">
-                      鏆傛棤杞欢锛岀偣鍑?鍒涘缓杞欢"寮€濮?
+                      暂无软件，点击"创建软件"开始
                     </td>
                   </tr>
                 )}
