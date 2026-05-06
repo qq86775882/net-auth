@@ -1,9 +1,9 @@
 -- ============================================
--- 缃戠粶楠岃瘉绯荤粺 - 鏁版嵁搴?Schema
--- 鍦?Supabase SQL Editor 涓墽琛?
+-- 网络验证系统 - 数据库 Schema
+-- 在 Supabase SQL Editor 中执行
 -- ============================================
 
--- 1. 杞欢琛?
+-- 1. 软件表
 CREATE TABLE IF NOT EXISTS softwares (
     id           SERIAL PRIMARY KEY,
     name         VARCHAR(100) NOT NULL,
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS softwares (
     updated_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
--- 2. 鍗″瘑琛?
+-- 2. 卡密表
 CREATE TABLE IF NOT EXISTS cards (
     id          SERIAL PRIMARY KEY,
     softid      VARCHAR(32)  NOT NULL REFERENCES softwares(softid) ON DELETE CASCADE,
@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS cards (
 CREATE INDEX idx_cards_softid ON cards(softid);
 CREATE INDEX idx_cards_status ON cards(status);
 
--- 3. 楠岃瘉鏃ュ織琛?
+-- 3. 验证日志表
 CREATE TABLE IF NOT EXISTS auth_logs (
     id         BIGSERIAL PRIMARY KEY,
     softid     VARCHAR(32)  NOT NULL,
@@ -54,7 +54,7 @@ CREATE INDEX idx_auth_logs_softid ON auth_logs(softid);
 CREATE INDEX idx_auth_logs_result ON auth_logs(result);
 CREATE INDEX idx_auth_logs_created ON auth_logs(created_at);
 
--- 4. 绠＄悊鍛樿〃
+-- 4. 管理员表
 CREATE TABLE IF NOT EXISTS admin_users (
     id         SERIAL PRIMARY KEY,
     username   VARCHAR(50)  NOT NULL UNIQUE,
@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS admin_users (
     created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
--- 5. 鍦ㄧ嚎浼氳瘽琛?
+-- 5. 在线会话表
 CREATE TABLE IF NOT EXISTS online_sessions (
     id         BIGSERIAL PRIMARY KEY,
     card_id    INT          NOT NULL,
@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS online_sessions (
 
 CREATE INDEX idx_online_sessions_card ON online_sessions(card_id);
 
--- 6. 鑷姩鏇存柊 updated_at
+-- 6. 自动更新 updated_at
 CREATE OR REPLACE FUNCTION update_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -92,15 +92,15 @@ CREATE TRIGGER tg_softwares_updated_at
     BEFORE UPDATE ON softwares
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
--- 7. 鎻掑叆榛樿绠＄悊鍛橈紙瀵嗙爜: admin123锛屽悗缁湪鍚庡彴淇敼锛?
--- 娉ㄦ剰锛歋upabase 鐨?pgcrypto 鎵╁睍闇€瑕佸厛鍚敤
+-- 7. 插入默认管理员（密码: admin123，后续在后台修改）
+-- 注意：Supabase 的 pgcrypto 扩展需要先启用
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 INSERT INTO admin_users (username, password, role)
 VALUES ('admin', crypt('admin123', gen_salt('bf')), 1)
 ON CONFLICT (username) DO NOTHING;
 
--- 8. 浼氳瘽娓呯悊鍑芥暟
+-- 8. 会话清理函数
 CREATE OR REPLACE FUNCTION clean_expired_sessions()
 RETURNS void AS $$
 BEGIN
