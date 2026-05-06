@@ -28,13 +28,13 @@ export async function POST(req: NextRequest) {
     const { Softid, Card, Version, Mac } = body;
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
 
-    // -9 鍙傛暟涓嶅畬鏁?
+    // -9 参数不完整
     if (!Softid || !Card || !Version || !Mac) {
       await log(Softid || "", Card || "", Mac, Version, ip, "-9");
       return new NextResponse("-9", { status: 200, headers: { "Content-Type": "text/plain" } });
     }
 
-    // 鈶?鏌ヨ蒋浠?
+    // ① 查软件
     const { data: software } = await supabase
       .from("softwares")
       .select("*")
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
       return new NextResponse("-5", { status: 200, headers: { "Content-Type": "text/plain" } });
     }
 
-    // 鈶?鏌ュ崱瀵?
+    // ② 查卡密
     const { data: card } = await supabase
       .from("cards")
       .select("*")
@@ -73,18 +73,18 @@ export async function POST(req: NextRequest) {
       return new NextResponse("-4", { status: 200, headers: { "Content-Type": "text/plain" } });
     }
 
-    // -1 杩囨湡
+    // -1 过期
     if (new Date(card.expire_time) < new Date()) {
       await supabase.from("cards").update({ status: 2 }).eq("id", card.id);
       await log(Softid, Card, Mac, Version, ip, "-1");
       return new NextResponse("-1", { status: 200, headers: { "Content-Type": "text/plain" } });
     }
 
-    // 鈶?鏈哄櫒鐮佹牎楠?
+    // ③ 机器码校验
     const bindMode = software.machine_bind;
     if (bindMode > 0) {
       if (!card.bind_mac) {
-        // 棣栨缁戝畾
+        // 首次绑定
         if (card.bind_count >= card.max_bind) {
           await log(Softid, Card, Mac, Version, ip, "-7");
           return new NextResponse("-7", { status: 200, headers: { "Content-Type": "text/plain" } });
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
           .update({ bind_mac: Mac, bind_count: card.bind_count + 1 })
           .eq("id", card.id);
       } else {
-        // 宸茬粦瀹氾紝鏍￠獙
+        // 已绑定，校验
         if (card.bind_mac !== Mac) {
           await log(Softid, Card, Mac, Version, ip, "-3");
           return new NextResponse("-3", { status: 200, headers: { "Content-Type": "text/plain" } });
@@ -102,13 +102,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 鈶?鐗堟湰妫€鏌?
+    // ④ 版本检查
     if (software.version_min && Version < software.version_min) {
       await log(Softid, Card, Mac, Version, ip, "-6");
       return new NextResponse("-6", { status: 200, headers: { "Content-Type": "text/plain" } });
     }
 
-    // 鈶?鍦ㄧ嚎鏁版鏌?
+    // ⑤ 在线数检查
     if (software.max_online > 0) {
       const now = new Date().toISOString();
       const { count } = await supabase
@@ -123,11 +123,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 鈶?鍏ㄩ儴閫氳繃 鉁?
+    // ⑥ 全部通过 ✅
     const token = generateToken();
     const expireAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
-    // 鍐欏叆鍦ㄧ嚎浼氳瘽
+    // 写入在线会话
     await supabase.from("online_sessions").insert({
       card_id: card.id,
       token,
@@ -136,12 +136,12 @@ export async function POST(req: NextRequest) {
       expire_at: expireAt,
     });
 
-    // 鏇存柊鍗″瘑鐘舵€?
+    // 更新卡密状态
     const updates: Record<string, unknown> = { status: 1 };
     if (!card.used_at) updates.used_at = new Date().toISOString();
     await supabase.from("cards").update(updates).eq("id", card.id);
 
-    // 璁板綍鏃ュ織
+    // 记录日志
     await log(Softid, Card, Mac, Version, ip, "success", token);
 
     return new NextResponse(token, { status: 200, headers: { "Content-Type": "text/plain" } });
@@ -168,7 +168,7 @@ async function log(
   } catch {}
 }
 
-// 澶勭悊 OPTIONS锛圕ORS锛?
+// 处理 OPTIONS（CORS）
 export async function OPTIONS() {
   return new NextResponse(null, {
     status: 204,
