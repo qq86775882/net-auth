@@ -1,9 +1,9 @@
 -- ============================================
--- 缃戠粶楠岃瘉绯荤粺 - Supabase RPC 鍑芥暟
--- 鍦?Supabase SQL Editor 涓墽琛岋紙schema.sql 涔嬪悗锛?
+-- 网络验证系统 - Supabase RPC 函数
+-- 在 Supabase SQL Editor 中执行（schema.sql 之后）
 -- ============================================
 
--- 楠岃瘉绠＄悊鍛樺瘑鐮?
+-- 验证管理员密码
 CREATE OR REPLACE FUNCTION verify_admin_password(
     input_username TEXT,
     input_password TEXT
@@ -23,7 +23,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 淇敼绠＄悊鍛樺瘑鐮?
+-- 修改管理员密码
 CREATE OR REPLACE FUNCTION update_admin_password(
     input_username TEXT,
     input_password TEXT
