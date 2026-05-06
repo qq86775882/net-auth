@@ -8,28 +8,14 @@ import { Plus, Download, Ban, Search } from "lucide-react";
 
 interface Software { id: number; name: string; softid: string; }
 interface Card {
-  id: number;
-  softid: string;
-  card_no: string;
-  card_type: number;
-  expire_time: string;
-  status: number;
-  bind_mac: string;
-  bind_count: number;
-  max_bind: number;
-  used_at: string | null;
-  note: string;
-  created_at: string;
+  id: number; softid: string; card_no: string; card_type: number;
+  expire_time: string; status: number; bind_mac: string;
+  bind_count: number; max_bind: number; used_at: string | null;
+  note: string; created_at: string;
 }
 
-const TYPE_LABELS = ["", "澶╁崱", "鍛ㄥ崱", "鏈堝崱", "瀛ｅ崱", "骞村崱", "", "", "", "姘镐箙"];
-const STATUS_LABELS = ["鏈娇鐢?, "宸蹭娇鐢?, "宸茶繃鏈?, "宸茬鐢?];
-const STATUS_COLORS = [
-  "bg-blue-100 text-blue-700",
-  "bg-green-100 text-green-700",
-  "bg-red-100 text-red-700",
-  "bg-gray-100 text-gray-600",
-];
+const TYPE_LABELS = ["", "Day", "Week", "Month", "Season", "Year", "", "", "", "Forever"];
+const STATUS_LABELS = ["Unused", "Used", "Expired", "Disabled"];
 
 export default function CardsPage() {
   const [cards, setCards] = useState<Card[]>([]);
@@ -38,20 +24,19 @@ export default function CardsPage() {
   const [filterSoftid, setFilterSoftid] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [searchKeyword, setSearchKeyword] = useState("");
-
-  // 鍒涘缓鍙傛暟
   const [createSoftid, setCreateSoftid] = useState("");
   const [createType, setCreateType] = useState(1);
   const [createCount, setCreateCount] = useState(1);
   const [createPrefix, setCreatePrefix] = useState("");
   const [createNote, setCreateNote] = useState("");
+  const [msg, setMsg] = useState("");
 
   const fetchCards = async () => {
-    let q = supabase.from("cards").select("*").order("created_at", { ascending: false });
+    let q = supabase.from("cards").select("*").order("created_at", { ascending: false }).limit(200);
     if (filterSoftid) q = q.eq("softid", filterSoftid);
     if (filterStatus) q = q.eq("status", Number(filterStatus));
-    if (searchKeyword) q = q.ilike("card_no", `%${searchKeyword}%`);
-    const { data } = await q.limit(200);
+    if (searchKeyword) q = q.ilike("card_no", "%" + searchKeyword + "%");
+    const { data } = await q;
     setCards(data || []);
   };
 
@@ -63,16 +48,15 @@ export default function CardsPage() {
   useEffect(() => { fetchSoftwares(); }, []);
   useEffect(() => { fetchCards(); }, [filterSoftid, filterStatus, searchKeyword]);
 
-  const genCardNo = (prefix: string): string => {
+  const genCardNo = (prefix: string) => {
     const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const check = Math.abs(
-      (prefix + rand).split("").reduce((a, c) => a + c.charCodeAt(0), 0)
-    ).toString(16).toUpperCase().slice(-6);
-    const p = prefix ? prefix + "-" : "";
-    return `${p}${rand}-${check}`;
+    let sum = 0;
+    for (const c of prefix + rand) sum += c.charCodeAt(0);
+    const check = Math.abs(sum).toString(16).toUpperCase().slice(-6);
+    return prefix ? prefix + "-" + rand + "-" + check : rand + "-" + check;
   };
 
-  const calcExpire = (type: number): string => {
+  const calcExpire = (type: number) => {
     const now = new Date();
     const days = [0, 1, 7, 30, 90, 365, 0, 0, 0, 0];
     if (type === 9) return "2099-12-31T23:59:59";
@@ -82,20 +66,18 @@ export default function CardsPage() {
 
   const handleBatchCreate = async () => {
     if (!createSoftid) return;
+    setMsg("Generating...");
     const rows = [];
     for (let i = 0; i < createCount; i++) {
       rows.push({
-        softid: createSoftid,
-        card_no: genCardNo(createPrefix),
-        card_type: createType,
-        expire_time: calcExpire(createType),
-        note: createNote,
+        softid: createSoftid, card_no: genCardNo(createPrefix),
+        card_type: createType, expire_time: calcExpire(createType), note: createNote,
       });
     }
-    await supabase.from("cards").insert(rows);
-    setShowCreate(false);
-    setCreateCount(1);
-    fetchCards();
+    const { error } = await supabase.from("cards").insert(rows);
+    if (error) { setMsg("Error: " + error.message); return; }
+    setMsg("Created " + createCount + " cards!");
+    setShowCreate(false); setCreateCount(1); fetchCards();
   };
 
   const handleDisable = async (id: number) => {
@@ -108,9 +90,7 @@ export default function CardsPage() {
     const blob = new Blob([txt], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url;
-    a.download = `cards-${Date.now()}.txt`;
-    a.click();
+    a.href = url; a.download = "cards-" + Date.now() + ".txt"; a.click();
   };
 
   return (
@@ -119,114 +99,90 @@ export default function CardsPage() {
         <Sidebar />
         <main className="flex-1 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-slate-800">馃帿 鍗″瘑绠＄悊</h2>
+            <h2 className="text-xl font-bold text-slate-800">Card Management</h2>
             <div className="flex gap-2">
               <button onClick={handleExport} className="flex items-center gap-1 px-3 py-1.5 text-sm border rounded-lg text-slate-600 hover:bg-slate-50">
-                <Download size={14} /> 瀵煎嚭
+                <Download size={14} /> Export
               </button>
-              <button
-                onClick={() => setShowCreate(true)}
-                className="flex items-center gap-1 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-500"
-              >
-                <Plus size={14} /> 鎵归噺鐢熸垚
+              <button onClick={() => setShowCreate(true)} className="flex items-center gap-1 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-500">
+                <Plus size={14} /> Generate
               </button>
             </div>
           </div>
 
-          {/* 绛涢€夋爮 */}
           <div className="flex gap-3 mb-4 flex-wrap">
-            <select value={filterSoftid} onChange={(e) => setFilterSoftid(e.target.value)}
-              className="border rounded-lg px-3 py-1.5 text-sm">
-              <option value="">鍏ㄩ儴杞欢</option>
+            <select value={filterSoftid} onChange={(e) => setFilterSoftid(e.target.value)} className="border rounded-lg px-3 py-1.5 text-sm">
+              <option value="">All Software</option>
               {softwares.map((s) => <option key={s.softid} value={s.softid}>{s.name}</option>)}
             </select>
-            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
-              className="border rounded-lg px-3 py-1.5 text-sm">
-              <option value="">鍏ㄩ儴鐘舵€?/option>
-              <option value="0">鏈娇鐢?/option>
-              <option value="1">宸蹭娇鐢?/option>
-              <option value="2">宸茶繃鏈?/option>
-              <option value="3">宸茬鐢?/option>
+            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="border rounded-lg px-3 py-1.5 text-sm">
+              <option value="">All Status</option>
+              <option value="0">Unused</option><option value="1">Used</option>
+              <option value="2">Expired</option><option value="3">Disabled</option>
             </select>
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                placeholder="鎼滅储鍗″瘑..."
-                value={searchKeyword}
+              <input placeholder="Search card..." value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
-                className="pl-9 pr-3 py-1.5 border rounded-lg text-sm w-48"
-              />
+                className="pl-9 pr-3 py-1.5 border rounded-lg text-sm w-48" />
             </div>
           </div>
 
-          {/* 鎵归噺鐢熸垚寮圭獥 */}
           {showCreate && (
             <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
               <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
-                <h3 className="text-lg font-bold mb-4">馃彮 鎵归噺鐢熸垚鍗″瘑</h3>
+                <h3 className="text-lg font-bold mb-4">Generate Cards</h3>
                 <div className="space-y-3">
                   <div>
-                    <label className="text-sm text-slate-600">閫夋嫨杞欢 *</label>
-                    <select value={createSoftid} onChange={(e) => setCreateSoftid(e.target.value)}
-                      className="w-full border rounded-lg px-3 py-2 mt-1">
-                      <option value="">璇烽€夋嫨</option>
+                    <label className="text-sm text-slate-600">Software *</label>
+                    <select value={createSoftid} onChange={(e) => setCreateSoftid(e.target.value)} className="w-full border rounded-lg px-3 py-2 mt-1">
+                      <option value="">Select</option>
                       {softwares.map((s) => <option key={s.softid} value={s.softid}>{s.name}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="text-sm text-slate-600">鍗″瘑绫诲瀷</label>
-                    <select value={createType} onChange={(e) => setCreateType(Number(e.target.value))}
-                      className="w-full border rounded-lg px-3 py-2 mt-1">
-                      <option value={1}>澶╁崱 (1澶?</option>
-                      <option value={2}>鍛ㄥ崱 (7澶?</option>
-                      <option value={3}>鏈堝崱 (30澶?</option>
-                      <option value={4}>瀛ｅ崱 (90澶?</option>
-                      <option value={5}>骞村崱 (365澶?</option>
-                      <option value={9}>姘镐箙鍗?/option>
+                    <label className="text-sm text-slate-600">Type</label>
+                    <select value={createType} onChange={(e) => setCreateType(Number(e.target.value))} className="w-full border rounded-lg px-3 py-2 mt-1">
+                      <option value={1}>Day (1d)</option><option value={2}>Week (7d)</option>
+                      <option value={3}>Month (30d)</option><option value={4}>Season (90d)</option>
+                      <option value={5}>Year (365d)</option><option value={9}>Forever</option>
                     </select>
                   </div>
                   <div>
-                    <label className="text-sm text-slate-600">鐢熸垚鏁伴噺</label>
+                    <label className="text-sm text-slate-600">Count</label>
                     <input type="number" min={1} max={500} value={createCount}
-                      onChange={(e) => setCreateCount(Number(e.target.value))}
-                      className="w-full border rounded-lg px-3 py-2 mt-1" />
+                      onChange={(e) => setCreateCount(Number(e.target.value))} className="w-full border rounded-lg px-3 py-2 mt-1" />
                   </div>
                   <div>
-                    <label className="text-sm text-slate-600">鍗″瘑鍓嶇紑锛堝彲閫夛級</label>
+                    <label className="text-sm text-slate-600">Prefix (optional)</label>
                     <input value={createPrefix} onChange={(e) => setCreatePrefix(e.target.value.toUpperCase())}
-                      className="w-full border rounded-lg px-3 py-2 mt-1" placeholder="濡?MYAPP" maxLength={6} />
+                      className="w-full border rounded-lg px-3 py-2 mt-1" placeholder="e.g. MYAPP" maxLength={6} />
                   </div>
                   <div>
-                    <label className="text-sm text-slate-600">澶囨敞</label>
+                    <label className="text-sm text-slate-600">Note</label>
                     <input value={createNote} onChange={(e) => setCreateNote(e.target.value)}
-                      className="w-full border rounded-lg px-3 py-2 mt-1" placeholder="濡傦細鍗栫粰寮犱笁" />
+                      className="w-full border rounded-lg px-3 py-2 mt-1" placeholder="e.g. Sold to John" />
                   </div>
                 </div>
+                {msg && <p className="text-sm text-blue-600 mt-2">{msg}</p>}
                 <div className="flex justify-end gap-2 mt-4">
-                  <button onClick={() => setShowCreate(false)}
-                    className="px-4 py-2 text-sm border rounded-lg text-slate-600">鍙栨秷</button>
-                  <button onClick={handleBatchCreate}
-                    className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-500">
-                    鐢熸垚 {createCount} 寮?
+                  <button onClick={() => setShowCreate(false)} className="px-4 py-2 text-sm border rounded-lg text-slate-600">Cancel</button>
+                  <button onClick={handleBatchCreate} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-500">
+                    Generate {createCount}
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* 鍗″瘑鍒楄〃 */}
           <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50 text-left text-slate-500">
-                  <th className="px-4 py-3">鍗″瘑</th>
-                  <th className="px-4 py-3">绫诲瀷</th>
-                  <th className="px-4 py-3">杩囨湡鏃堕棿</th>
-                  <th className="px-4 py-3">鐘舵€?/th>
-                  <th className="px-4 py-3">缁戝畾</th>
-                  <th className="px-4 py-3">澶囨敞</th>
-                  <th className="px-4 py-3">鍒涘缓鏃堕棿</th>
-                  <th className="px-4 py-3">鎿嶄綔</th>
+                  <th className="px-4 py-3">Card</th><th className="px-4 py-3">Type</th>
+                  <th className="px-4 py-3">Expires</th><th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Bind</th><th className="px-4 py-3">Note</th>
+                  <th className="px-4 py-3">Created</th><th className="px-4 py-3">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -234,34 +190,21 @@ export default function CardsPage() {
                   <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50">
                     <td className="px-4 py-3 font-mono text-xs">{c.card_no}</td>
                     <td className="px-4 py-3">{TYPE_LABELS[c.card_type] || "-"}</td>
-                    <td className="px-4 py-3 text-xs">
-                      {new Date(c.expire_time).toLocaleDateString("zh-CN")}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${STATUS_COLORS[c.status]}`}>
-                        {STATUS_LABELS[c.status]}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-400">
-                      {c.bind_mac ? `${c.bind_count}/${c.max_bind}` : "-"}
-                    </td>
+                    <td className="px-4 py-3 text-xs">{new Date(c.expire_time).toLocaleDateString()}</td>
+                    <td className="px-4 py-3"><span className="px-2 py-0.5 rounded text-xs font-medium bg-slate-100">{STATUS_LABELS[c.status]}</span></td>
+                    <td className="px-4 py-3 text-xs text-slate-400">{c.bind_mac ? c.bind_count + "/" + c.max_bind : "-"}</td>
                     <td className="px-4 py-3 text-xs text-slate-500 max-w-[120px] truncate">{c.note || "-"}</td>
-                    <td className="px-4 py-3 text-xs text-slate-400">
-                      {new Date(c.created_at).toLocaleDateString("zh-CN")}
-                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-400">{new Date(c.created_at).toLocaleDateString()}</td>
                     <td className="px-4 py-3">
                       {c.status !== 3 && (
-                        <button onClick={() => handleDisable(c.id)}
-                          className="flex items-center gap-1 text-xs text-red-500 hover:bg-red-50 px-2 py-1 rounded">
-                          <Ban size={12} /> 绂佺敤
+                        <button onClick={() => handleDisable(c.id)} className="flex items-center gap-1 text-xs text-red-500 hover:bg-red-50 px-2 py-1 rounded">
+                          <Ban size={12} /> Disable
                         </button>
                       )}
                     </td>
                   </tr>
                 ))}
-                {cards.length === 0 && (
-                  <tr><td colSpan={8} className="text-center py-8 text-slate-400">鏆傛棤鍗″瘑</td></tr>
-                )}
+                {cards.length === 0 && <tr><td colSpan={8} className="text-center py-8 text-slate-400">No cards yet</td></tr>}
               </tbody>
             </table>
           </div>
