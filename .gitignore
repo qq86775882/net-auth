@@ -1,0 +1,22 @@
+# env
+.env*.local
+
+# deps
+node_modules/
+
+# next
+.next/
+out/
+
+# misc
+.DS_Store
+*.pem
+npm-debug.log*
+yarn-error.log*
+
+# turbo
+.turbo
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
